@@ -1,0 +1,91 @@
+// ============================================================================
+// BLOQUE 04: P&L IMPACT
+// ============================================================================
+
+// --- Parámetros (crear como What-If en Power BI) ---
+// Target Freight % of Sales = 7.5% (configurable)
+// Ventas Estimadas Mensuales = input manual o conexión a SAP
+
+// --- Freight as % of Sales ---
+
+Freight Pct of Sales =
+    VAR _forecast = [Forecast Cielo Propuesto KUSD]
+    VAR _ventas = [Ventas Estimadas KUSD]
+    RETURN
+        DIVIDE(_forecast, _ventas, 0)
+
+// --- Ventas (parámetro o tabla auxiliar) ---
+
+Ventas Estimadas KUSD =
+    SUM(AUX_Ventas[Ventas_KUSD])
+
+// --- Target vs Actual ---
+
+Target Freight Cost KUSD =
+    [Ventas Estimadas KUSD] * [Target Freight Pct Value]
+
+// What-If parameter reference
+Target Freight Pct Value =
+    SELECTEDVALUE('Target Freight %'[Target Freight %], 0.075)
+
+// --- EBITDA Impact ---
+
+EBITDA Impact KUSD =
+    [Target Freight Cost KUSD] - [Forecast Cielo Propuesto KUSD]
+
+EBITDA Impact Status =
+    IF(
+        [EBITDA Impact KUSD] < 0,
+        "Negativo - Erosionando margen",
+        "Positivo - Dentro de target"
+    )
+
+// --- Premium Freight Impact ---
+
+Premium Freight Total KUSD =
+    SUM(FACT_PremiumFreight[PF_KUSD])
+
+Premium Freight Pct of Total =
+    DIVIDE([Premium Freight Total KUSD], [Total Spend KUSD], 0)
+
+// --- Demurrages Impact ---
+
+Demurrages Total Hrs =
+    SUM(FACT_Demurrages[Horas])
+
+Demurrages Estimated Cost KUSD =
+    [Demurrages Total Hrs] * 0.15
+
+// --- Savings Opportunity ---
+
+Savings from Saturation KUSD =
+    VAR _currentSat = [Avg Saturation]
+    VAR _targetSat = 0.92
+    VAR _currentSpend = [Total Spend KUSD]
+    RETURN
+        IF(
+            _currentSat < _targetSat,
+            _currentSpend * (_targetSat - _currentSat) / _currentSat,
+            0
+        )
+
+Total Savings Opportunity KUSD =
+    [Savings from Saturation KUSD]
+    + IF([EBITDA Impact KUSD] < 0, ABS([EBITDA Impact KUSD]), 0)
+
+// --- YTD Accumulations ---
+
+YTD Spend KUSD =
+    CALCULATE(
+        [Total Spend KUSD],
+        DATESYTD(DIM_Calendar[Date])
+    )
+
+YTD BP KUSD =
+    CALCULATE(
+        [BP2026 KUSD],
+        DATESYTD(DIM_Calendar[Date])
+    )
+
+YTD Variance KUSD =
+    [YTD Spend KUSD] - [YTD BP KUSD]

@@ -1,0 +1,79 @@
+// ============================================================================
+// BLOQUE 03: FINANCIAL PERFORMANCE (WATERFALL / FORECAST)
+// ============================================================================
+
+// --- GR Status ---
+
+GR Causado KUSD =
+    SUM(FACT_GR_Status[GR_KUSD])
+
+Sensitivity Std KUSD =
+    SUM(FACT_GR_Status[Sensitivity_Std_KUSD])
+
+Missing GR KUSD =
+    SUM(FACT_GR_Status[MissingGR_KUSD])
+
+Commitment KUSD =
+    SUM(FACT_GR_Status[Commitment_KUSD])
+
+// --- Waterfall Components (concepto del TSX) ---
+// GR = viajes completados y causados
+// Commitment = tránsito / carrier SOA
+// Accruals = riesgos a validar (demurrages, surcharges, disputas)
+
+Accruals Riesgo KUSD =
+    VAR _demurrages =
+        CALCULATE(SUM(FACT_Demurrages[Horas]) * 0.15)
+    VAR _premiumFreight =
+        CALCULATE(SUM(FACT_PremiumFreight[PF_KUSD]))
+    RETURN
+        _demurrages + _premiumFreight
+
+// --- Forecast / Cielo Propuesto ---
+
+Forecast Cielo Propuesto KUSD =
+    [GR Causado KUSD] + [Commitment KUSD] + [Accruals Riesgo KUSD]
+
+// --- Presupuesto / Cielo Real ---
+
+Presupuesto Cielo Real KUSD =
+    [BP2026 KUSD]
+
+// --- Varianza Forecast vs Budget ---
+
+Forecast vs Budget Variance KUSD =
+    [Forecast Cielo Propuesto KUSD] - [Presupuesto Cielo Real KUSD]
+
+Forecast vs Budget Variance % =
+    DIVIDE(
+        [Forecast vs Budget Variance KUSD],
+        [Presupuesto Cielo Real KUSD],
+        0
+    )
+
+Forecast Status =
+    SWITCH(
+        TRUE(),
+        [Forecast vs Budget Variance %] > 0.05, "Over Budget",
+        [Forecast vs Budget Variance %] > 0, "At Risk",
+        "On Track"
+    )
+
+// --- GR Completion Rate ---
+
+GR Completion % =
+    DIVIDE([GR Causado KUSD], [Sensitivity Std KUSD], 0)
+
+// --- Waterfall para visual ---
+// Usar con una tabla auxiliar de categorías: GR, Commitment, Accruals
+
+Waterfall Value KUSD =
+    SWITCH(
+        SELECTEDVALUE(WaterfallCategory[Category]),
+        "GR", [GR Causado KUSD],
+        "Commitment", [Commitment KUSD],
+        "Accruals", [Accruals Riesgo KUSD],
+        "Forecast", [Forecast Cielo Propuesto KUSD],
+        "Budget", [Presupuesto Cielo Real KUSD],
+        BLANK()
+    )

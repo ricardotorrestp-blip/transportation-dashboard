@@ -1,0 +1,79 @@
+// ============================================================================
+// BLOQUE 01: OPERACIONES & RIESGO
+// ============================================================================
+
+// --- Volumen ---
+
+Total Cargas =
+    COUNTROWS(FACT_Cargas)
+
+Cargas Completadas =
+    CALCULATE(
+        COUNTROWS(FACT_Cargas),
+        FACT_Cargas[Status] = BLANK()
+    )
+
+Cargas En Tránsito =
+    CALCULATE(
+        COUNTROWS(FACT_Cargas),
+        FACT_Cargas[Status] <> BLANK()
+    )
+
+// --- OTIF ---
+
+OTIF % =
+    VAR _total = COUNTROWS(FACT_Cargas)
+    VAR _onTimeInFull =
+        CALCULATE(
+            COUNTROWS(FACT_Cargas),
+            FACT_Cargas[IsOnTime] = 1,
+            FACT_Cargas[IsInFull] = 1
+        )
+    RETURN
+        DIVIDE(_onTimeInFull, _total, 0)
+
+On Time % =
+    DIVIDE(
+        CALCULATE(COUNTROWS(FACT_Cargas), FACT_Cargas[IsOnTime] = 1),
+        COUNTROWS(FACT_Cargas),
+        0
+    )
+
+In Full % =
+    DIVIDE(
+        CALCULATE(COUNTROWS(FACT_Cargas), FACT_Cargas[IsInFull] = 1),
+        COUNTROWS(FACT_Cargas),
+        0
+    )
+
+// --- Saturación ---
+
+Avg Saturation =
+    AVERAGE(FACT_Cargas[Saturation])
+
+Planned Pallets =
+    SUM(FACT_Cargas[PlannedPallets])
+
+Actual Pallets =
+    SUM(FACT_Cargas[ActualPallets])
+
+Saturation Rate =
+    DIVIDE([Actual Pallets], SUM(FACT_Cargas[MaxPallets]), 0)
+
+// --- Saturación con semáforo (para formato condicional) ---
+
+Saturation Status =
+    SWITCH(
+        TRUE(),
+        [Avg Saturation] >= 0.90, "Verde",
+        [Avg Saturation] >= 0.75, "Amarillo",
+        "Rojo"
+    )
+
+OTIF Status =
+    SWITCH(
+        TRUE(),
+        [OTIF %] >= 0.95, "Verde",
+        [OTIF %] >= 0.90, "Amarillo",
+        "Rojo"
+    )

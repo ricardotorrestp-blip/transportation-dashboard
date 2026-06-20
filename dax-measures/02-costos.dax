@@ -1,0 +1,95 @@
+// ============================================================================
+// BLOQUE 02: COSTO & SENSIBILIDAD (SEMANAL / POR MODO)
+// ============================================================================
+
+// --- Spend ---
+
+Total Spend KUSD =
+    DIVIDE(SUM(FACT_Cargas[TotalChargeUSD]), 1000, 0)
+
+Spend Semana Actual =
+    CALCULATE(
+        [Total Spend KUSD],
+        DIM_Calendar[IsCurrentWeek] = TRUE()
+    )
+
+Spend Semana Anterior =
+    VAR _currentWeek = MAX(DIM_Calendar[WeekNum])
+    VAR _currentYear = MAX(DIM_Calendar[Year])
+    RETURN
+        CALCULATE(
+            [Total Spend KUSD],
+            DIM_Calendar[WeekNum] = _currentWeek - 1,
+            DIM_Calendar[Year] = _currentYear,
+            ALL(DIM_Calendar[IsCurrentWeek])
+        )
+
+Spend WoW % =
+    VAR _prev = [Spend Semana Anterior]
+    RETURN
+        DIVIDE([Spend Semana Actual] - _prev, _prev, 0)
+
+// --- Run Rate ---
+
+Weekly Run Rate =
+    VAR _weeksWithData =
+        CALCULATE(
+            DISTINCTCOUNT(DIM_Calendar[WeekNum]),
+            FACT_Cargas[TotalChargeUSD] <> BLANK()
+        )
+    RETURN
+        DIVIDE([Total Spend KUSD], _weeksWithData, 0)
+
+Monthly Projection from Run Rate =
+    [Weekly Run Rate] * 4.33
+
+// --- Costo por Modo ---
+
+Spend por Modo KUSD =
+    DIVIDE(
+        CALCULATE(SUM(FACT_Cargas[TotalChargeUSD])),
+        1000,
+        0
+    )
+
+Spend Mix % =
+    DIVIDE([Spend por Modo KUSD], [Total Spend KUSD], 0)
+
+// --- Costo por Pallet ---
+
+Cost per Pallet =
+    DIVIDE(
+        SUM(FACT_Cargas[TotalChargeUSD]),
+        SUM(FACT_Cargas[ActualPallets]),
+        0
+    )
+
+Cost per Pallet Trend =
+    VAR _currentCPP = [Cost per Pallet]
+    VAR _prevWeekCPP =
+        CALCULATE(
+            [Cost per Pallet],
+            DATEADD(DIM_Calendar[Date], -7, DAY)
+        )
+    RETURN
+        DIVIDE(_currentCPP - _prevWeekCPP, _prevWeekCPP, 0)
+
+// --- BP vs Actual (del NAM Dashboard) ---
+
+BP2026 KUSD =
+    CALCULATE(
+        SUM(FACT_CostosPlan[KUSD]),
+        FACT_CostosPlan[RowLabel] = "BP2026"
+    )
+
+Actual Sensitivity KUSD =
+    CALCULATE(
+        SUM(FACT_CostosPlan[KUSD]),
+        FACT_CostosPlan[RowLabel] = "Actual/Sens"
+    )
+
+BP Variance KUSD =
+    [Actual Sensitivity KUSD] - [BP2026 KUSD]
+
+BP Variance % =
+    DIVIDE([BP Variance KUSD], [BP2026 KUSD], 0)
