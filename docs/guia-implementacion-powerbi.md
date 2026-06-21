@@ -193,8 +193,13 @@ Cada bloque/sección usa un **rectángulo de fondo** con borde izquierdo de colo
 Componentes:
 ├── Slicer bar (arriba): Planta, Año, Mes
 ├── KPI Cards (fila): OTIF%, Cargas, Forecast, BP Var, Freight%Sales
-├── Stacked Bar: BP vs Actual por planta (visual nativo)
-├── Donut: Mix por modo de transporte
+├── ★ Grouped Bar: BP vs Sensitivity por Planta
+│   Eje X=DIM_Planta[PlantaName], Valores=[BP2026 KUSD] y [Actual Sensitivity KUSD]
+│   BP en barras outline (sin relleno), Sensitivity en barras sólidas
+│   Drill-through habilitado hacia P3 para ver desglose por modo
+├── Stacked Bar: Sensitivity por Modo de Transporte
+│   Leyenda=DIM_ModoTransporte[ModoName], Valor=[Sensitivity por Modo KUSD]
+├── Donut: Mix % por Modo (usar [Sensitivity Mix por Modo %])
 ├── Line Chart: Weekly run rate por planta
 └── Table: Top 5 riesgos
 ```
@@ -222,10 +227,25 @@ Componentes:
 ├── Card: Costo Semana Actual ($115K) — fondo slate-50
 ├── Card: Proyección Semana Siguiente ($128K) — fondo ámbar-50
 │   Subtítulo con flecha ↑ y porcentaje
+│
+├── ★ GRÁFICA PRINCIPAL: BP vs Sensitivity por Modo (Mensual)
+│   Tipo: Clustered Column Chart
+│   Eje X = DIM_Calendar[MonthName]
+│   Leyenda = DIM_ModoTransporte[ModoName]
+│   Valores:
+│     [BP por Modo KUSD] → barras con transparencia 80% (efecto outline)
+│     [Sensitivity por Modo KUSD] → barras sólidas
+│   Colores: MX-MX=#2563EB, US-US=#60A5FA, Ocean=#F59E0B,
+│            CB=#10B981, 4PL=#8B5CF6
+│   Data labels en K USD, tooltip con [Varianza por Modo %]
+│
+├── Table: Varianza por Modo con semáforo
+│   Columnas: Modo | BP | Sens | Varianza | Var %
+│   Formato condicional: >10% rojo, 0-10% amarillo, ≤0% verde
+│
 ├── Area Chart: Weekly Spend Trend
 │   Agregar Constant Line para BP semanal promedio
-├── 100% Stacked Bar: Spend por Modo
-└── Table: Cost per Pallet por Carrier con sparkline WoW
+└── Table: Cost per Pallet por Carrier con WoW trend
 ```
 
 ### P4: Financial (borde indigo #6366F1)

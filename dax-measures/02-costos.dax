@@ -93,3 +93,55 @@ BP Variance KUSD =
 
 BP Variance % =
     DIVIDE([BP Variance KUSD], [BP2026 KUSD], 0)
+
+// --- BP vs Sensitivity por Modo (gráfica central NAM Dashboard) ---
+
+BP por Modo KUSD =
+    CALCULATE(
+        SUM(FACT_CostosPlan[KUSD]),
+        FACT_CostosPlan[RowLabel] = "BP2026"
+    )
+
+Sensitivity por Modo KUSD =
+    CALCULATE(
+        SUM(FACT_CostosPlan[KUSD]),
+        FACT_CostosPlan[RowLabel] = "Actual/Sens"
+    )
+
+Varianza por Modo KUSD =
+    [Sensitivity por Modo KUSD] - [BP por Modo KUSD]
+
+Varianza por Modo % =
+    DIVIDE([Varianza por Modo KUSD], [BP por Modo KUSD], 0)
+
+// Medida para el stacked bar: qué parte del Sensitivity viene de cada modo
+Sensitivity Mix por Modo % =
+    DIVIDE(
+        [Sensitivity por Modo KUSD],
+        CALCULATE([Actual Sensitivity KUSD], ALL(DIM_ModoTransporte)),
+        0
+    )
+
+// Savings por modo: dónde está la oportunidad de reducción
+Savings por Modo KUSD =
+    IF(
+        [Varianza por Modo KUSD] > 0,
+        [Varianza por Modo KUSD],
+        0
+    )
+
+// YTD por modo para trending
+BP por Modo YTD KUSD =
+    CALCULATE(
+        [BP por Modo KUSD],
+        DATESYTD(DIM_Calendar[Date])
+    )
+
+Sensitivity por Modo YTD KUSD =
+    CALCULATE(
+        [Sensitivity por Modo KUSD],
+        DATESYTD(DIM_Calendar[Date])
+    )
+
+Varianza por Modo YTD KUSD =
+    [Sensitivity por Modo YTD KUSD] - [BP por Modo YTD KUSD]
